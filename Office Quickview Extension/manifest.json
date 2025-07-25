@@ -1,8 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "Office QuickView",
+  "name": "Docx QuickView",
   "version": "1.0",
-  "description": "View local Word and PowerPoint files instantly in your browser.",
+  "description": "View local Word (.docx) files instantly in your browser.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "permissions": [
     "declarativeNetRequest",
     "webNavigation",
@@ -11,15 +16,24 @@
   "host_permissions": [
     "file://*/*"
   ],
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    },
+    "default_title": "Docx QuickView"
+  },
   "background": {
     "service_worker": "js/background.js"
   },
   "declarative_net_request": {
-    "rule_resources": [{
-      "id": "ruleset_1",
-      "enabled": true,
-      "path": "rules.json"
-    }]
+    "rule_resources": [
+      {
+        "id": "ruleset_1",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
   },
   "web_accessible_resources": [
     {
@@ -27,9 +41,12 @@
         "viewer.html",
         "js/viewer.js",
         "css/main.css",
-        "js/libs/mammoth.browser.min.js"
+        "js/libs/mammoth.browser.min.js",
+        "help.html"
       ],
-      "matches": ["<all_urls>"]
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ]
 }
