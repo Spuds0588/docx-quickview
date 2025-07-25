@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Office QuickView",
+  "version": "1.0",
+  "description": "View local Word and PowerPoint files instantly in your browser.",
+  "permissions": [
+    "declarativeNetRequest",
+    "webNavigation",
+    "storage"
+  ],
+  "host_permissions": [
+    "file://*/*"
+  ],
+  "background": {
+    "service_worker": "js/background.js"
+  },
+  "declarative_net_request": {
+    "rule_resources": [{
+      "id": "ruleset_1",
+      "enabled": true,
+      "path": "rules.json"
+    }]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "viewer.html",
+        "js/viewer.js",
+        "css/main.css",
+        "js/libs/mammoth.browser.min.js"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

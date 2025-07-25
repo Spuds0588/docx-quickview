@@ -1,0 +1,79 @@
+/* Styling for the permission overlay */
+#qview-permission-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#qview-permission-iframe {
+    width: 800px;
+    height: 500px;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+/* Styling for the rendered document */
+body {
+    background-color: #f0f2f5; /* Light grey background */
+}
+
+#qview-container {
+    background-color: white;
+    max-width: 850px;
+    margin: 40px auto; /* Centered with top/bottom margin */
+    padding: 60px 80px; /* Generous padding for readability */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-radius: 4px;
+    font-family: "Segoe UI", sans-serif;
+    line-height: 1.6;
+}
+
+#qview-loading {
+    font-size: 1.5em;
+    font-family: sans-serif;
+    color: #555;
+    text-align: center;
+    padding-top: 100px;
+}
+
+/* Basic styling for content rendered by mammoth.js */
+#qview-container h1, #qview-container h2, #qview-container h3 {
+    line-height: 1.3;
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+}
+
+#qview-container p {
+    margin-bottom: 1em;
+}
+
+#qview-container table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 1em;
+}
+
+#qview-container th, #qview-container td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+#qview-container th {
+    background-color: #f2f2f2;
+}
+
+#qview-container img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 1em 0;
+}
