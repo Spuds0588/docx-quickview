@@ -15,18 +15,20 @@ function base64ToArrayBuffer(base64) {
 
 (async function() {
     await applyTheme();
+    setupHeader("Docx QuickView"); // Setup header with a default title
 
-    const response = await chrome.runtime.sendMessage({ type: 'getViewerUrl' });
-    if (!response || !response.url) {
-        displayError(response.error === 'No URL found in session storage.' ? 'This page is for viewing local files. Please open a .docx file from your computer.' : 'An unknown error occurred.');
+    const params = new URLSearchParams(window.location.search);
+    const fileUrl = params.get('file');
+
+    if (!fileUrl) {
+        displayError('No file URL was provided. Please open a local .docx file.');
+        document.getElementById('qview-actions').style.display = 'none'; // Hide buttons
         return;
     }
     
-    const fileUrl = response.url;
-    currentFilename = decodeURI(fileUrl.split('/').pop());
+    currentFilename = decodeURIComponent(fileUrl.split('/').pop());
     document.title = currentFilename;
-
-    setupHeader(currentFilename);
+    document.getElementById('qview-filename').textContent = currentFilename; // Update header title
 
     try {
         const fileResponse = await chrome.runtime.sendMessage({ type: 'fetchFile', url: fileUrl });
@@ -71,7 +73,7 @@ function setupHeader(filename) {
 
     actionsDiv.appendChild(themeButton);
     actionsDiv.appendChild(saveHtmlButton);
-    actionsDiv.appendChild(savePdfButton); // CORRECTED: This line is now present.
+    actionsDiv.appendChild(savePdfButton);
 
     header.appendChild(filenameP);
     header.appendChild(actionsDiv);
@@ -81,10 +83,8 @@ function setupHeader(filename) {
 async function applyTheme() {
     const result = await chrome.storage.local.get('theme');
     const theme = result.theme || 'system';
-    
-    document.body.classList.remove('theme-light', 'theme-dark');
     const themeButton = document.getElementById('theme-toggle');
-
+    document.body.classList.remove('theme-light', 'theme-dark');
     if (theme === 'light') {
         document.body.classList.add('theme-light');
         if (themeButton) themeButton.textContent = "Theme: Light";
@@ -115,23 +115,15 @@ function handleSaveAsPdf() {
 
 async function handleSaveAsHtml() {
     if (!currentDocBuffer) return;
-
     const interactiveScript = `
         function applyThemeFromStorage() {
             const theme = localStorage.getItem('theme') || 'system';
             const body = document.body;
             const button = document.getElementById('theme-toggle');
             body.classList.remove('theme-light', 'theme-dark');
-
-            if (theme === 'light') {
-                body.classList.add('theme-light');
-                if (button) button.textContent = "Theme: Light";
-            } else if (theme === 'dark') {
-                body.classList.add('theme-dark');
-                if (button) button.textContent = "Theme: Dark";
-            } else {
-                if (button) button.textContent = "Theme: System";
-            }
+            if (theme === 'light') { body.classList.add('theme-light'); if (button) button.textContent = "Theme: Light"; }
+            else if (theme === 'dark') { body.classList.add('theme-dark'); if (button) button.textContent = "Theme: Dark"; }
+            else { if (button) button.textContent = "Theme: System"; }
         }
         function toggleTheme() {
             let currentTheme = localStorage.getItem('theme') || 'system';
@@ -146,42 +138,16 @@ async function handleSaveAsHtml() {
             document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
         });
     `;
-
     try {
         const cssResponse = await fetch(chrome.runtime.getURL('css/main.css'));
         if (!cssResponse.ok) throw new Error('Could not fetch stylesheet.');
         const cssText = await cssResponse.text();
-        
         const mammothOptions = {
             convertImage: mammoth.images.inline(element => element.read("base64").then(image_base64 => ({ src: "data:" + element.contentType + ";base64," + image_base64 }))),
             styleMap: [ "p[style-name='Title'] => h1:fresh", "p[style-name='Heading 1'] => h1:fresh", "b => strong", "i => em" ]
         };
-        
         const result = await mammoth.convertToHtml({ arrayBuffer: currentDocBuffer }, mammothOptions);
-
-        // CORRECTED: The bad body style is removed, and the script is correctly formatted.
-        const htmlContent = `
-            <!DOCTYPE html>
-            <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <title>${currentFilename}</title>
-                    <style>${cssText}</style>
-                </head>
-                <body>
-                    <div id="qview-header">
-                        <p id="qview-filename">${currentFilename}</p>
-                        <div id="qview-actions">
-                            <button class="qview-button" id="theme-toggle">Theme: System</button>
-                        </div>
-                    </div>
-                    <div id="qview-container">
-                        ${result.value}
-                    </div>
-                    <script>${interactiveScript}<\/script>
-                </body>
-            </html>`;
-            
+        const htmlContent = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${currentFilename}</title><style>${cssText}</style></head><body><div id="qview-header"><p id="qview-filename">${currentFilename}</p><div id="qview-actions"><button class="qview-button" id="theme-toggle">Theme: System</button></div></div><div id="qview-container">${result.value}</div><script>${interactiveScript}<\/script></body></html>`;
         const blob = new Blob([htmlContent.trim()], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -202,13 +168,11 @@ async function renderDocx(buffer) {
         arrayBuffer: buffer,
         styleMap: [ "p[style-name='Title'] => h1:fresh", "p[style-name='Heading 1'] => h1:fresh", "b => strong", "i => em" ]
     };
-    
     const result = await mammoth.convertToHtml(mammothOptions);
     const renderContainer = document.createElement('div');
     renderContainer.id = 'qview-container';
     renderContainer.innerHTML = result.value;
     document.body.appendChild(renderContainer);
-    
     if (result.messages && result.messages.length > 0) {
         console.warn('[Docx QuickView] Mammoth.js messages:', result.messages);
     }

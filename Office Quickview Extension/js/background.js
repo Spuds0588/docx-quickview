@@ -1,6 +1,5 @@
 // js/background.js
 
-// This helper function was missing from the previous "complete" file. This was the bug.
 function arrayBufferToBase64(buffer) {
     let binary = '';
     const bytes = new Uint8Array(buffer);
@@ -11,8 +10,8 @@ function arrayBufferToBase64(buffer) {
     return self.btoa(binary);
 }
 
+// The onMessage listener no longer needs 'getViewerUrl'
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    // Handles the request to fetch the binary file data
     if (message.type === 'fetchFile') {
         (async () => {
             try {
@@ -26,34 +25,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 sendResponse({ success: false, error: e.message });
             }
         })();
-        return true; // Indicates that the response is asynchronous
-    }
-
-    // Handles the request from the viewer page to get the correct file URL
-    if (message.type === 'getViewerUrl') {
-        const storageKey = `tab_${sender.tab.id}`;
-        chrome.storage.session.get(storageKey, (result) => {
-            if (result[storageKey]) {
-                sendResponse({ url: result[storageKey] });
-                chrome.storage.session.remove(storageKey);
-            } else {
-                sendResponse({ error: 'No URL found in session storage.' });
-            }
-        });
-        return true; // Indicates that the response is asynchronous
+        return true;
     }
 });
 
+// NEW REDIRECTION LOGIC:
 chrome.webNavigation.onBeforeNavigate.addListener((details) => {
-    // Match only .docx files
+    // Only act on main frame navigations to .docx files
+    if (details.frameId !== 0) return;
+    
     const isDocx = details.url.match(/\.(docx|DOCX)$/);
-    if (details.frameId === 0 && isDocx) {
-        const storageKey = `tab_${details.tabId}`;
-        chrome.storage.session.set({ [storageKey]: details.url });
-        console.log(`[QuickView] Stored URL for tab ${details.tabId}: ${details.url}`);
-    }
-});
+    if (!isDocx) return;
 
+    // Don't act on URLs that are already pointing to our viewer.
+    // This prevents an infinite redirect loop if the user reloads the viewer page.
+    if (details.url.includes(chrome.runtime.id)) return;
+
+    // Construct the new URL for our viewer, with the file path as a parameter.
+    const viewerUrl = chrome.runtime.getURL('viewer.html');
+    const newUrl = `${viewerUrl}?file=${encodeURIComponent(details.url)}`;
+    
+    // Update the tab to navigate to our viewer page.
+    // This happens instead of the original navigation.
+    chrome.tabs.update(details.tabId, { url: newUrl });
+    
+}, { url: [{ schemes: ['file'] }] }); // Only listen for file URLs
+
+// The onInstalled listener remains the same
 chrome.runtime.onInstalled.addListener((details) => {
     if (details.reason === 'install') {
         chrome.extension.isAllowedFileSchemeAccess((isAllowed) => {
